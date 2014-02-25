@@ -141,4 +141,81 @@ class Response extends AbstractResponse
 
         return $this;
     }
+
+    /**
+     * Sends an object as pseudo XML
+     *
+     * It should be noted that this method disables caching
+     * of the response by default, as XML responses are usually
+     * dynamic and rarely make sense to be HTTP cached
+     *
+     * Also, this method removes any data/content that is
+     * currently in the response body and replaces it with
+     * the passed json encoded object
+     *
+     * @param mixed $object         The data to encode as XML
+     * @access public
+     * @return Response
+     */
+    public function xml($object, $jsonp_prefix = null)
+    {
+        $this->body('');
+        $this->noCache();
+
+
+
+        $json = $this->xml_encode($object);
+
+        $this->header('Content-Type', 'application/xml');
+        $this->body($json);
+
+        $this->send();
+
+        return $this;
+    }
+
+    /**
+     * A recursive function for encoding an object as XML
+     *
+     * Expanded from darklaunch.com
+     */
+    private function xml_encode($mixed, $domElement=null, $DOMDocument=null) {
+    if (is_null($DOMDocument)) {
+
+        $DOMDocument =new DOMDocument;
+        $DOMDocument->formatOutput = true;
+
+        $this->xml_encode($mixed, $DOMDocument, $DOMDocument);
+        return $DOMDocument->saveXML();
+    }
+    else {
+        if (is_array($mixed)) {
+            foreach ($mixed as $index => $mixedElement) {
+                if (is_int($index)) {
+                    if ($index === 0) {
+                        $node = $domElement;
+                    } else {
+                        $node = $DOMDocument->createElement($domElement->tagName);
+                        $domElement->parentNode->appendChild($node);
+                    }
+                }
+                else {
+                    $plural = $DOMDocument->createElement($index);
+                    $domElement->appendChild($plural);
+                    $node = $plural;
+                    if (!(rtrim($index, 's') === $index)) {
+                        $singular = $DOMDocument->createElement(rtrim($index, 's'));
+                        $plural->appendChild($singular);
+                        $node = $singular;
+                    }
+                }
+ 
+                $this->xml_encode($mixedElement, $node, $DOMDocument);
+            }
+        }
+        else {
+            $domElement->appendChild($DOMDocument->createTextNode($mixed));
+        }
+    }
+}
 }

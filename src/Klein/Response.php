@@ -177,41 +177,60 @@ class Response extends AbstractResponse
     }
 
     /**
-     * A recursive function for encoding an object as XML
-     *
-     * Expanded from darklaunch.com
-     */
-    private function xml_encode($mixed, $domElement=null, $DOMDocument=null) {
-        if (is_null($DOMDocument)) {
-    
-            $DOMDocument =new DOMDocument;
-            $DOMDocument->formatOutput = true;
-    
-            $this->xml_encode($mixed, $DOMDocument, $DOMDocument);
-            return $DOMDocument->saveXML();
+    * Encode an object as XML string
+    *
+    * @param Object $obj
+    * @param string $root_node
+    * @return string $xml
+    */
+    public function xml_encode($obj, $root_node = 'response') {
+        $xml = '<?xml version="1.0" encoding="utf-8"?>' . PHP_EOL;
+        if (sizeof($obj) == 1){
+            $xml .= $this->encode($obj[array_keys($obj)[0]], array_keys($obj)[0], $depth = 0);
         } else {
-            if (is_array($mixed)) {
-                foreach ($mixed as $index => $mixedElement) {
-                    if (is_int($index)) {
-                        if ($index === 0) {
-                            $node = $domElement;
-                        } else {
-                            $node = $DOMDocument->createElement($domElement->tagName);
-                            $domElement->parentNode->appendChild($node);
-                        }
-                    }
-                    else {
-                        $plural = $DOMDocument->createElement($index);
-                        $domElement->appendChild($plural);
-                        $node = $plural;
-                    }
-     
-                    $this->xml_encode($mixedElement, $node, $DOMDocument);
+            $xml .= $this->encode($obj, $root_node, $depth = 0);
+        }
+        return $xml;
+    }
+ 
+ 
+    /**
+    * Encode an object as XML string
+    *
+    * @param Object|array $data
+    * @param string $root_node
+    * @param int $depth Used for indentation
+    * @return string $xml
+    */
+    private function encode($data, $node, $depth,$parent) {
+        $xml = str_repeat("\t", $depth);
+        if (is_numeric($node)){
+            $parent = (strrpos($parent, "s") == strlen($parent)-1) ? substr($parent, 0,strlen($parent) -1) : $parent;
+            $nodeOp = "<$parent>";
+            $nodeCl = "</$parent>";
+        } else {
+            $nodeOp = "<$node>";
+            $nodeCl = "</$node>";
+        }
+
+        $xml .= $nodeOp . PHP_EOL;
+        foreach($data as $key => $val) {
+            if(is_array($val) || is_object($val)) {
+                $xml .= self::encode($val, $key, ($depth + 1),$node);
+            } else {
+                if(is_int($key)){
+                    $node = (strrpos($node, "s") == strlen($node)-1) ? substr($node, 0,strlen($node) -1) : $node;
+                    $xml .= str_repeat("\t", ($depth + 1));
+                    $xml .= "<{$node}>" . htmlspecialchars($val) . "</{$node}>" . PHP_EOL;
+                } else {
+                    $xml .= str_repeat("\t", ($depth + 1));
+                    $xml .= "<{$key}>" . htmlspecialchars($val) . "</{$key}>" . PHP_EOL;
                 }
             }
-            else {
-                $domElement->appendChild($DOMDocument->createTextNode($mixed));
-            }
         }
+        $xml .= str_repeat("\t", $depth);
+        $xml .= $nodeCl . PHP_EOL;
+        return $xml;
     }
+
 }

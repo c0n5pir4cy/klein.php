@@ -204,11 +204,6 @@ class Response extends AbstractResponse
                         $plural = $DOMDocument->createElement($index);
                         $domElement->appendChild($plural);
                         $node = $plural;
-                        if (!(rtrim($index, 's') === $index)) {
-                            $singular = $DOMDocument->createElement(rtrim($index, 's'));
-                            $plural->appendChild($singular);
-                            $node = $singular;
-                        }
                     }
      
                     $this->xml_encode($mixedElement, $node, $DOMDocument);
